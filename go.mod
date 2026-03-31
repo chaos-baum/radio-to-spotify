@@ -11,7 +11,7 @@ require (
 	github.com/lib/pq v1.10.10-0.20230707155734-3d613208bca2
 	github.com/ncruces/go-sqlite3 v0.30.2
 	github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af
-	github.com/spf13/cobra v1.9.1
+	github.com/spf13/cobra v1.10.1
 	github.com/zmb3/spotify/v2 v2.4.3
 	golang.org/x/oauth2 v0.33.0
 )
@@ -41,7 +41,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/spf13/viper v1.19.0
 	github.com/tetratelabs/wazero v1.10.1 // indirect
 	golang.org/x/net v0.39.0 // indirect
