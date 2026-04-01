@@ -8,7 +8,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.10.10-0.20230707155734-3d613208bca2
+	github.com/lib/pq v1.12.1
 	github.com/ncruces/go-sqlite3 v0.30.2
 	github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af
 	github.com/spf13/cobra v1.10.1
