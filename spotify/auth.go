@@ -2,10 +2,19 @@ package spotify
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"math/big"
+	"net"
+	"net/url"
 	"net/http"
 	"os"
+	"path/filepath"
 	"radio-to-spotify/utils"
 	"time"
 
@@ -24,10 +33,16 @@ var (
 func initializeAuthenticator() {
 	clientID := utils.GetEnv("SPOTIFY_ID", "")
 	clientSecret := utils.GetEnv("SPOTIFY_SECRET", "")
-	redirectURL := utils.GetEnv("SPOTIFY_REDIRECT_URL", "http://localhost:8080/callback")
+	redirectURL := utils.GetEnv("SPOTIFY_REDIRECT_URL", "https://localhost:8080/callback")
 
 	if clientID == "" || clientSecret == "" {
 		fmt.Println("Please set SPOTIFY_ID and SPOTIFY_SECRET environment variables")
+		os.Exit(1)
+	}
+
+	parsedRedirectURL, err := url.Parse(redirectURL)
+	if err != nil || parsedRedirectURL.Scheme != "https" {
+		fmt.Println("SPOTIFY_REDIRECT_URL must be a valid HTTPS URL")
 		os.Exit(1)
 	}
 
@@ -63,7 +78,18 @@ func getAuthToken() (*oauth2.Token, error) {
 	}
 
 	http.HandleFunc("/callback", completeAuth)
-	go http.ListenAndServe(":"+utils.GetEnv("SPOTIFY_PORT", "8999"), nil)
+	serverAddress := ":" + utils.GetEnv("SPOTIFY_PORT", "8999")
+	tlsCertFile := utils.GetEnv("SPOTIFY_TLS_CERT_FILE", "./data/spotify-callback-cert.pem")
+	tlsKeyFile := utils.GetEnv("SPOTIFY_TLS_KEY_FILE", "./data/spotify-callback-key.pem")
+	if err := ensureTLSCertificateFiles(tlsCertFile, tlsKeyFile); err != nil {
+		fmt.Println("Failed to prepare TLS certificate files:", err)
+		os.Exit(1)
+	}
+	go func() {
+		if err := http.ListenAndServeTLS(serverAddress, tlsCertFile, tlsKeyFile, nil); err != nil {
+			utils.Logger.Error("Error starting Spotify callback HTTPS server: ", err)
+		}
+	}()
 
 	url := authenticator.AuthURL("state-token")
 	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)
@@ -75,6 +101,83 @@ func getAuthToken() (*oauth2.Token, error) {
 			return token, nil
 		}
 	}
+}
+
+func ensureTLSCertificateFiles(certFile, keyFile string) error {
+	certExists := fileExists(certFile)
+	keyExists := fileExists(keyFile)
+	if certExists && keyExists {
+		return nil
+	}
+	return generateSelfSignedCertificate(certFile, keyFile)
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func generateSelfSignedCertificate(certFile, keyFile string) error {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return err
+	}
+
+		serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+		serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+		if err != nil {
+			return err
+		}
+
+		template := x509.Certificate{
+			SerialNumber: serialNumber,
+			Subject: pkix.Name{
+				CommonName: "localhost",
+			},
+			NotBefore:             time.Now().Add(-1 * time.Hour),
+			NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+			KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+			BasicConstraintsValid: true,
+			DNSNames:              []string{"localhost"},
+			IPAddresses:           []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
+		}
+
+		derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+		if err != nil {
+			return err
+		}
+
+		if err := os.MkdirAll(filepath.Dir(certFile), 0o755); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Dir(keyFile), 0o755); err != nil {
+			return err
+		}
+
+		certOut, err := os.OpenFile(certFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+		if err != nil {
+			return err
+		}
+		defer certOut.Close()
+
+		if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
+			return err
+		}
+
+		keyOut, err := os.OpenFile(keyFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+		if err != nil {
+			return err
+		}
+		defer keyOut.Close()
+
+		privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+		if err := pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}); err != nil {
+			return err
+		}
+
+	utils.Logger.Infof("Generated self-signed TLS certificate for Spotify callback server: cert=%s key=%s", certFile, keyFile)
+	return nil
 }
 
 func completeAuth(w http.ResponseWriter, r *http.Request) {
