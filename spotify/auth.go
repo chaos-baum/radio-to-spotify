@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"net/http"
 	"os"
 	"radio-to-spotify/utils"
@@ -24,10 +25,16 @@ var (
 func initializeAuthenticator() {
 	clientID := utils.GetEnv("SPOTIFY_ID", "")
 	clientSecret := utils.GetEnv("SPOTIFY_SECRET", "")
-	redirectURL := utils.GetEnv("SPOTIFY_REDIRECT_URL", "http://localhost:8080/callback")
+	redirectURL := utils.GetEnv("SPOTIFY_REDIRECT_URL", "https://localhost:8080/callback")
 
 	if clientID == "" || clientSecret == "" {
 		fmt.Println("Please set SPOTIFY_ID and SPOTIFY_SECRET environment variables")
+		os.Exit(1)
+	}
+
+	parsedRedirectURL, err := url.Parse(redirectURL)
+	if err != nil || parsedRedirectURL.Scheme != "https" {
+		fmt.Println("SPOTIFY_REDIRECT_URL must be a valid HTTPS URL")
 		os.Exit(1)
 	}
 

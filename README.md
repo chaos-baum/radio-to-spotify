@@ -110,13 +110,13 @@ Create a `stations.json` file to define the radio stations to scrape:
 Set up your environment variables for Spotify integration:
 - `SPOTIFY_ID`: Your Spotify Client ID
 - `SPOTIFY_SECRET`: Your Spotify Client Secret
-- `SPOTIFY_REDIRECT_URL`: Your Spotify Redirect URL
+- `SPOTIFY_REDIRECT_URL`: Your Spotify Redirect URL (must start with `https://`)
 
 You can store these in a `.env` file:
 ```sh
 SPOTIFY_ID=your_spotify_client_id
 SPOTIFY_SECRET=your_spotify_client_secret
-SPOTIFY_REDIRECT_URL=your_spotify_redirect_url
+SPOTIFY_REDIRECT_URL=https://your-domain.com/callback
 ```
 ## Usage
 
