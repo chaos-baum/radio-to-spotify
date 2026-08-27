@@ -70,7 +70,18 @@ func getAuthToken() (*oauth2.Token, error) {
 	}
 
 	http.HandleFunc("/callback", completeAuth)
-	go http.ListenAndServe(":"+utils.GetEnv("SPOTIFY_PORT", "8999"), nil)
+	serverAddress := ":" + utils.GetEnv("SPOTIFY_PORT", "8999")
+	tlsCertFile := utils.GetEnv("SPOTIFY_TLS_CERT_FILE", "")
+	tlsKeyFile := utils.GetEnv("SPOTIFY_TLS_KEY_FILE", "")
+	if tlsCertFile == "" || tlsKeyFile == "" {
+		fmt.Println("Please set SPOTIFY_TLS_CERT_FILE and SPOTIFY_TLS_KEY_FILE environment variables")
+		os.Exit(1)
+	}
+	go func() {
+		if err := http.ListenAndServeTLS(serverAddress, tlsCertFile, tlsKeyFile, nil); err != nil {
+			utils.Logger.Error("Error starting Spotify callback HTTPS server: ", err)
+		}
+	}()
 
 	url := authenticator.AuthURL("state-token")
 	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)

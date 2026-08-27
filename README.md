@@ -111,12 +111,18 @@ Set up your environment variables for Spotify integration:
 - `SPOTIFY_ID`: Your Spotify Client ID
 - `SPOTIFY_SECRET`: Your Spotify Client Secret
 - `SPOTIFY_REDIRECT_URL`: Your Spotify Redirect URL (must start with `https://`)
+- `SPOTIFY_PORT`: Local callback server port (default: `8999`)
+- `SPOTIFY_TLS_CERT_FILE`: Path to TLS certificate file for the callback server
+- `SPOTIFY_TLS_KEY_FILE`: Path to TLS private key file for the callback server
 
 You can store these in a `.env` file:
 ```sh
 SPOTIFY_ID=your_spotify_client_id
 SPOTIFY_SECRET=your_spotify_client_secret
 SPOTIFY_REDIRECT_URL=https://your-domain.com/callback
+SPOTIFY_PORT=8999
+SPOTIFY_TLS_CERT_FILE=/path/to/cert.pem
+SPOTIFY_TLS_KEY_FILE=/path/to/key.pem
 ```
 ## Usage
 
