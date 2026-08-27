@@ -101,26 +101,27 @@ func getAuthToken() (*oauth2.Token, error) {
 			return token, nil
 		}
 	}
+}
 
-	func ensureTLSCertificateFiles(certFile, keyFile string) error {
-		certExists := fileExists(certFile)
-		keyExists := fileExists(keyFile)
-		if certExists && keyExists {
-			return nil
-		}
-		return generateSelfSignedCertificate(certFile, keyFile)
+func ensureTLSCertificateFiles(certFile, keyFile string) error {
+	certExists := fileExists(certFile)
+	keyExists := fileExists(keyFile)
+	if certExists && keyExists {
+		return nil
 	}
+	return generateSelfSignedCertificate(certFile, keyFile)
+}
 
-	func fileExists(path string) bool {
-		_, err := os.Stat(path)
-		return err == nil
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func generateSelfSignedCertificate(certFile, keyFile string) error {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return err
 	}
-
-	func generateSelfSignedCertificate(certFile, keyFile string) error {
-		privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-		if err != nil {
-			return err
-		}
 
 		serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 		serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
@@ -175,9 +176,8 @@ func getAuthToken() (*oauth2.Token, error) {
 			return err
 		}
 
-		utils.Logger.Infof("Generated self-signed TLS certificate for Spotify callback server: cert=%s key=%s", certFile, keyFile)
-		return nil
-	}
+	utils.Logger.Infof("Generated self-signed TLS certificate for Spotify callback server: cert=%s key=%s", certFile, keyFile)
+	return nil
 }
 
 func completeAuth(w http.ResponseWriter, r *http.Request) {
